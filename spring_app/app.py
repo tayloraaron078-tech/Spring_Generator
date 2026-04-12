@@ -31,17 +31,19 @@ def generate():
         pitch       = float(data.get("pitch",        4.0))
         inside_dia  = float(data.get("inside_dia",   6.0))
         chamfer     = float(data.get("chamfer",      0.5))
+        support_gap = float(data.get("support_gap",  0.25))
         fmt         = data.get("format", "stl").lower()
     except (ValueError, TypeError) as e:
         return jsonify({"error": f"Invalid parameter: {e}"}), 400
 
     # Sanity clamp
-    coils      = max(1,   min(coils,      50))
-    thickness  = max(0.2, min(thickness,  20))
-    width      = max(0.2, min(width,      20))
-    pitch      = max(0.5, min(pitch,      50))
-    inside_dia = max(1,   min(inside_dia, 200))
-    chamfer    = max(0,   min(chamfer,    min(thickness, width) / 2))
+    coils       = max(1,   min(coils,       50))
+    thickness   = max(0.2, min(thickness,   20))
+    width       = max(0.2, min(width,       20))
+    pitch       = max(0.5, min(pitch,       50))
+    inside_dia  = max(1,   min(inside_dia,  200))
+    chamfer     = max(0,   min(chamfer,     min(thickness, width) / 2))
+    support_gap = max(0,   min(support_gap, 5))
 
     fname = f"spring_{uuid.uuid4().hex[:8]}.stl"
     out_path = os.path.join(TMP, fname)
@@ -55,6 +57,8 @@ def generate():
             inside_dia=inside_dia,
             chamfer=chamfer,
             n_per_coil=72,
+            closed_ends=True,
+            support_gap=support_gap,
             output_path=out_path,
         )
     except Exception as e:
