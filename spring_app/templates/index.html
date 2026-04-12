@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spring Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap');
+
+  :root {
+    --bg:        #0f0f0f;
+    --surface:   #181818;
+    --border:    #2a2a2a;
+    --accent:    #e8ff47;
+    --accent2:   #ff6b35;
+    --text:      #e0e0e0;
+    --muted:     #666;
+    --input-bg:  #111;
+    --radius:    6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ── Header ── */
+  header {
+    width: 100%;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+  }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-icon svg { width: 18px; height: 18px; }
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+    color: #fff;
+  }
+  header span {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-left: auto;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── Main layout ── */
+  main {
+    display: flex;
+    width: 100%;
+    max-width: 1100px;
+    padding: 32px 24px;
+    gap: 32px;
+    flex: 1;
+  }
+
+  /* ── Panel ── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 320px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .panel-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Parameter rows ── */
+  .param {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .param label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .param-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .param input[type="number"] {
+    flex: 1;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    -moz-appearance: textfield;
+  }
+  .param input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .param input[type="number"]:focus { border-color: var(--accent); }
+
+  .stepper {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .stepper button {
+    background: var(--input-bg);
+    border: none;
+    color: var(--text);
+    font-size: 1rem;
+    width: 32px; height: 38px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    font-family: 'DM Mono', monospace;
+  }
+  .stepper button:hover { background: var(--accent); color: #000; }
+
+  /* ── Slider ── */
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--bg);
+  }
+
+  /* ── Generate button ── */
+  .btn-generate {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-top: 4px;
+  }
+  .btn-generate:hover { background: #d4eb2f; }
+  .btn-generate:active { transform: scale(0.98); }
+  .btn-generate:disabled {
+    background: var(--border);
+    color: var(--muted);
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ── Preview area ── */
+  .preview-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .canvas-wrap {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-height: 400px;
+    overflow: hidden;
+  }
+
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+  }
+  canvas:active { cursor: grabbing; }
+
+  .preview-label {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  /* ── Status bar ── */
+  .status {
+    padding: 10px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status.error { border-color: var(--accent2); color: var(--accent2); }
+  .status.success { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Spinner ── */
+  .spinner {
+    width: 12px; height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Spring SVG preview ── */
+  #springCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
+      <path d="M12 2 C6 2 4 6 4 9 C4 12 8 14 12 12 C16 10 20 12 20 15 C20 18 18 22 12 22"/>
+    </svg>
+  </div>
+  <h1>Spring Generator</h1>
+  <span>Local · No Cloud · No Credits</span>
+</header>
+
+<main>
+  <!-- ── Control panel ── -->
+  <div class="panel">
+    <div class="panel-title">Customize</div>
+
+    <div class="param">
+      <label>Coils</label>
+      <div class="param-row">
+        <input type="number" id="coils" value="15" min="1" max="50" step="1">
+        <div class="stepper">
+          <button onclick="step('coils',-1)">−</button>
+          <button onclick="step('coils',+1)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="param">
+      <label>Thickness (mm)</label>
+      <div class="param-row">
+        <input type="number" id="thickness" value="1.7" min="0.2" max="20" step="0.1">
+        <div class="stepper">
+          <button onclick="step('thickness',-0.1)">−</button>
+          <button onclick="step('thickness',+0.1)">+</button>
+        </div>
+      </div>
+      <input type="range" id="thickness_range" min="0.2" max="10" step="0.1" value="1.7"
+             oninput="sync('thickness',this.value)">
+    </div>
+
+    <div class="param">
+      <label>Width (mm)</label>
+      <div class="param-row">
+        <input type="number" id="width" value="2" min="0.2" max="20" step="0.1">
+        <div class="stepper">
+          <button onclick="step('width',-0.1)">−</button>
+          <button onclick="step('width',+0.1)">+</button>
+        </div>
+      </div>
+      <input type="range" id="width_range" min="0.2" max="10" step="0.1" value="2"
+             oninput="sync('width',this.value)">
+    </div>
+
+    <div class="param">
+      <label>Pitch (mm)</label>
+      <div class="param-row">
+        <input type="number" id="pitch" value="4" min="0.5" max="50" step="0.5">
+        <div class="stepper">
+          <button onclick="step('pitch',-0.5)">−</button>
+          <button onclick="step('pitch',+0.5)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="param">
+      <label>Inside Diameter (mm)</label>
+      <div class="param-row">
+        <input type="number" id="inside_dia" value="6" min="1" max="200" step="0.5">
+        <div class="stepper">
+          <button onclick="step('inside_dia',-0.5)">−</button>
+          <button onclick="step('inside_dia',+0.5)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="param">
+      <label>Chamfer (mm)</label>
+      <div class="param-row">
+        <input type="number" id="chamfer" value="0.5" min="0" max="5" step="0.1">
+        <div class="stepper">
+          <button onclick="step('chamfer',-0.1)">−</button>
+          <button onclick="step('chamfer',+0.1)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-generate" id="genBtn" onclick="generate()">⬇ Generate &amp; Download</button>
+  </div>
+
+  <!-- ── Preview + status ── -->
+  <div class="preview-area">
+    <div class="canvas-wrap">
+      <canvas id="springCanvas"></canvas>
+      <div class="preview-label">2D preview — drag to orbit not available (install Three.js for 3D)</div>
+    </div>
+    <div class="status" id="status">
+      <div class="spinner" id="spinner"></div>
+      <span id="statusText">Enter parameters and click Generate to download your STL.</span>
+    </div>
+  </div>
+</main>
+
+<script>
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function v(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function step(id, delta) {
+  const el = document.getElementById(id);
+  const val = Math.round((parseFloat(el.value) + delta) * 1000) / 1000;
+  el.value = val;
+  const rng = document.getElementById(id + '_range');
+  if (rng) rng.value = val;
+  drawPreview();
+}
+
+function sync(id, val) {
+  document.getElementById(id).value = parseFloat(val).toFixed(1);
+  drawPreview();
+}
+
+// Update ranges on text input change
+['thickness','width'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const rng = document.getElementById(id+'_range');
+    if (rng) rng.value = document.getElementById(id).value;
+    drawPreview();
+  });
+});
+['coils','pitch','inside_dia','chamfer'].forEach(id => {
+  document.getElementById(id).addEventListener('input', drawPreview);
+});
+
+// ── 2-D Spring Preview (SVG-on-canvas style helix projection) ────────────────
+function drawPreview() {
+  const canvas = document.getElementById('springCanvas');
+  const W = canvas.parentElement.clientWidth;
+  const H = canvas.parentElement.clientHeight;
+  canvas.width  = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  const coils     = Math.max(1, v('coils'));
+  const thickness = Math.max(0.2, v('thickness'));
+  const width     = Math.max(0.2, v('width'));
+  const pitch     = Math.max(0.5, v('pitch'));
+  const id        = Math.max(1,   v('inside_dia'));
+
+  const totalH = coils * pitch;
+  const outerR = id / 2 + width;
+  const scale  = Math.min((H * 0.8) / totalH, (W * 0.36) / outerR);
+  const cx = W / 2, cy = H / 2;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Draw coils as ellipses (orthographic front view)
+  const steps = coils * 40;
+  const points = [];
+  for (let i = 0; i <= steps; i++) {
+    const t    = (i / steps) * coils * Math.PI * 2;
+    const z    = (t / (Math.PI * 2)) * pitch;
+    const r    = id / 2 + width / 2;
+    const px   = cx + r * Math.cos(t) * scale;
+    const py   = cy + (z - totalH / 2) * scale;
+    points.push({ px, py, front: Math.cos(t) >= 0 });
+  }
+
+  // Back strokes first (dashed)
+  ctx.lineWidth = Math.max(1, thickness * scale * 0.9);
+  ctx.lineCap   = 'round';
+
+  let inSeg = false;
+  ctx.beginPath();
+  for (let i = 0; i < points.length; i++) {
+    if (!points[i].front) {
+      if (!inSeg) { ctx.moveTo(points[i].px, points[i].py); inSeg = true; }
+      else          ctx.lineTo(points[i].px, points[i].py);
+    } else {
+      inSeg = false;
+    }
+  }
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.stroke();
+
+  // Front strokes
+  inSeg = false;
+  ctx.beginPath();
+  for (let i = 0; i < points.length; i++) {
+    if (points[i].front) {
+      if (!inSeg) { ctx.moveTo(points[i].px, points[i].py); inSeg = true; }
+      else          ctx.lineTo(points[i].px, points[i].py);
+    } else {
+      inSeg = false;
+    }
+  }
+  ctx.strokeStyle = '#d0d0d0';
+  ctx.stroke();
+
+  // Dimension annotation
+  ctx.font      = `${Math.round(10 * devicePixelRatio / devicePixelRatio)}px "DM Mono"`;
+  ctx.fillStyle = '#555';
+  ctx.fillText(`⌀ ${id.toFixed(1)} mm ID`, cx + outerR * scale + 8, cy);
+  ctx.fillText(`${totalH.toFixed(1)} mm`, cx - outerR * scale - 60, cy);
+}
+
+window.addEventListener('resize', drawPreview);
+drawPreview();
+
+// ── Generate & Download ───────────────────────────────────────────────────────
+async function generate() {
+  const btn = document.getElementById('genBtn');
+  const spinner = document.getElementById('spinner');
+  const statusEl = document.getElementById('status');
+  const statusText = document.getElementById('statusText');
+
+  btn.disabled = true;
+  spinner.style.display = 'block';
+  statusEl.className = 'status';
+  statusText.textContent = 'Generating spring geometry…';
+
+  const params = {
+    coils:      v('coils'),
+    thickness:  v('thickness'),
+    width:      v('width'),
+    pitch:      v('pitch'),
+    inside_dia: v('inside_dia'),
+    chamfer:    v('chamfer'),
+    format:     'stl',
+  };
+
+  try {
+    const res = await fetch('/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const fname = `spring_c${params.coils}_id${params.inside_dia}_p${params.pitch}.stl`;
+    a.href = url; a.download = fname; a.click();
+    URL.revokeObjectURL(url);
+
+    const kb = (blob.size / 1024).toFixed(1);
+    statusEl.className = 'status success';
+    statusText.textContent = `✓ Downloaded ${fname} (${kb} KB)`;
+  } catch (e) {
+    statusEl.className = 'status error';
+    statusText.textContent = `✗ Error: ${e.message}`;
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+  }
+}
+</script>
+</body>
+</html>
