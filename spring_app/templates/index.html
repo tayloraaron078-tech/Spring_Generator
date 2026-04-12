@@ -359,6 +359,19 @@
       </div>
     </div>
 
+    <div class="param">
+      <label>Support Gap (mm) <span style="color:var(--muted);font-size:0.65rem">— 0 = off</span></label>
+      <div class="param-row">
+        <input type="number" id="support_gap" value="0.25" min="0" max="5" step="0.05">
+        <div class="stepper">
+          <button onclick="step('support_gap',-0.05)">−</button>
+          <button onclick="step('support_gap',+0.05)">+</button>
+        </div>
+      </div>
+      <input type="range" id="support_gap_range" min="0" max="2" step="0.05" value="0.25"
+             oninput="sync('support_gap',this.value)">
+    </div>
+
     <button class="btn-generate" id="genBtn" onclick="generate()">⬇ Generate &amp; Download</button>
   </div>
 
@@ -401,7 +414,7 @@ function sync(id, val) {
     drawPreview();
   });
 });
-['coils','pitch','inside_dia','chamfer'].forEach(id => {
+['coils','pitch','inside_dia','chamfer','support_gap'].forEach(id => {
   document.getElementById(id).addEventListener('input', drawPreview);
 });
 
@@ -496,13 +509,14 @@ async function generate() {
   statusText.textContent = 'Generating spring geometry…';
 
   const params = {
-    coils:      v('coils'),
-    thickness:  v('thickness'),
-    width:      v('width'),
-    pitch:      v('pitch'),
-    inside_dia: v('inside_dia'),
-    chamfer:    v('chamfer'),
-    format:     'stl',
+    coils:       v('coils'),
+    thickness:   v('thickness'),
+    width:       v('width'),
+    pitch:       v('pitch'),
+    inside_dia:  v('inside_dia'),
+    chamfer:     v('chamfer'),
+    support_gap: v('support_gap'),
+    format:      'stl',
   };
 
   try {
