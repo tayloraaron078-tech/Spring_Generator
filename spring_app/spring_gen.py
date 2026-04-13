@@ -1,6 +1,6 @@
 """
 spring_gen.py
-Generates a 3D-printable coil spring as a binary STL.
+Generates a 3D-printable coil spring as a binary STL or 3MF.
 
 Parameters mirror the MakerWorld Parametric Model Maker:
   coils          – number of coils
@@ -14,11 +14,15 @@ The approach:
   1. Build a chamfered rectangular cross-section profile in 2-D.
   2. Sweep it along a helix path using Frenet-Serret frames.
   3. Cap both ends flat.
-  4. Write binary STL.
+  4. Optionally add helical between-coil supports and a flat base ring.
+  5. Write binary STL or 3MF.
 """
 
+import io
 import math
 import struct
+import zipfile
+import xml.etree.ElementTree as ET
 import numpy as np
 
 
@@ -196,6 +200,159 @@ def write_binary_stl(triangles, path):
 
 
 # ---------------------------------------------------------------------------
+# Base-ring support (flat annular disc at z=0)
+# ---------------------------------------------------------------------------
+
+def _base_ring_triangles(inside_dia, width, thickness, height, n_segments=64):
+    """
+    Flat annular ring at z=0 .. z=height.
+    Acts as a raft/base support for the bottom closed-end coil.
+
+    Inner radius: centreline_radius - width/2  (just inside spring wire centreline)
+    Outer radius: centreline_radius + width/2 + thickness  (just outside)
+    height      : support_gap (thin so it breaks away easily after printing)
+    """
+    r_centre = inside_dia / 2 + width / 2
+    r_inner  = max(0.5, r_centre - width / 2)
+    r_outer  = r_centre + width / 2 + thickness
+
+    angles = np.linspace(0, 2 * math.pi, n_segments, endpoint=False)
+    cos_a  = np.cos(angles)
+    sin_a  = np.sin(angles)
+
+    # Four rings of vertices
+    ib = np.stack([r_inner * cos_a, r_inner * sin_a, np.zeros(n_segments)], axis=1)
+    ob = np.stack([r_outer * cos_a, r_outer * sin_a, np.zeros(n_segments)], axis=1)
+    it = np.stack([r_inner * cos_a, r_inner * sin_a, np.full(n_segments, height)], axis=1)
+    ot = np.stack([r_outer * cos_a, r_outer * sin_a, np.full(n_segments, height)], axis=1)
+
+    tris = []
+    for i in range(n_segments):
+        j = (i + 1) % n_segments
+        # Bottom annular face (normal -Z, reversed winding)
+        tris.append((ob[i], ib[j], ib[i]))
+        tris.append((ob[i], ob[j], ib[j]))
+        # Top annular face (normal +Z)
+        tris.append((it[i], it[j], ot[i]))
+        tris.append((ot[i], it[j], ot[j]))
+        # Outer wall (normal outward)
+        tris.append((ob[i], ot[i], ot[j]))
+        tris.append((ob[i], ot[j], ob[j]))
+        # Inner wall (normal inward)
+        tris.append((ib[i], ib[j], it[j]))
+        tris.append((ib[i], it[j], it[i]))
+
+    return tris
+
+
+# ---------------------------------------------------------------------------
+# 3MF writer
+# ---------------------------------------------------------------------------
+
+def _build_3dmodel_xml(triangles):
+    """Build the 3D/3dmodel.model XML string from a list of (3,3) triangles."""
+    # Deduplicate vertices for a more compact file
+    vert_map = {}
+    verts = []
+    tri_indices = []
+
+    def get_vert(pt):
+        key = (round(float(pt[0]), 6), round(float(pt[1]), 6), round(float(pt[2]), 6))
+        if key not in vert_map:
+            vert_map[key] = len(verts)
+            verts.append(key)
+        return vert_map[key]
+
+    for tri in triangles:
+        a, b, c = tri
+        tri_indices.append((get_vert(a), get_vert(b), get_vert(c)))
+
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<model unit="millimeter" xml:lang="en-US"',
+        '  xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">',
+        '  <resources>',
+        '    <object id="1" type="model">',
+        '      <mesh>',
+        '        <vertices>',
+    ]
+    for x, y, z in verts:
+        lines.append(f'          <vertex x="{x:.6f}" y="{y:.6f}" z="{z:.6f}"/>')
+    lines += [
+        '        </vertices>',
+        '        <triangles>',
+    ]
+    for v1, v2, v3 in tri_indices:
+        lines.append(f'          <triangle v1="{v1}" v2="{v2}" v3="{v3}"/>')
+    lines += [
+        '        </triangles>',
+        '      </mesh>',
+        '    </object>',
+        '  </resources>',
+        '  <build>',
+        '    <item objectid="1" transform="1 0 0 0 1 0 0 0 1 0 0 0"/>',
+        '  </build>',
+        '</model>',
+    ]
+    return "\n".join(lines)
+
+
+def write_3mf(triangles, output_path, slicer="bambu"):
+    """
+    Write a 3MF file compatible with Bambu Studio / OrcaSlicer or Snapmaker Orca.
+
+    slicer: 'bambu'     → Bambu Studio + OrcaSlicer compatible
+            'snapmaker' → Snapmaker Orca compatible
+    """
+    content_types = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">\n'
+        '  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>\n'
+        '  <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>\n'
+        '  <Default Extension="config" ContentType="application/xml"/>\n'
+        '</Types>'
+    )
+
+    root_rels = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n'
+        '  <Relationship Id="rel0"'
+        ' Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"'
+        ' Target="/3D/3dmodel.model"/>\n'
+        '</Relationships>'
+    )
+
+    if slicer == "snapmaker":
+        printer_model = "Snapmaker Artisan"
+        printer_variant = "Snapmaker Artisan"
+    else:
+        printer_model = ""
+        printer_variant = ""
+
+    # Minimal model_settings.config understood by both Bambu Studio and OrcaSlicer
+    model_settings = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<config>\n'
+        '  <object id="1">\n'
+        '    <metadata key="name" value="spring"/>\n'
+        + (f'    <metadata key="printer_model" value="{printer_model}"/>\n' if printer_model else '')
+        + (f'    <metadata key="printer_variant" value="{printer_variant}"/>\n' if printer_variant else '')
+        + '  </object>\n'
+        '</config>'
+    )
+
+    model_xml = _build_3dmodel_xml(triangles)
+
+    with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("[Content_Types].xml", content_types)
+        zf.writestr("_rels/.rels", root_rels)
+        zf.writestr("3D/3dmodel.model", model_xml)
+        zf.writestr("Metadata/model_settings.config", model_settings)
+
+    return output_path
+
+
+# ---------------------------------------------------------------------------
 # Support structure helpers
 # ---------------------------------------------------------------------------
 
@@ -246,17 +403,20 @@ def generate_spring_stl(
     closed_ends=True,
     support_gap=0.25,
     output_path="spring.stl",
+    output_format="stl",
 ):
     """
-    Generate a spring STL and write it to output_path.
+    Generate a spring and write it to output_path.
     Returns output_path on success.
 
-    closed_ends  – add one extra coil at each end where pitch ramps to zero,
-                   giving flat contact faces (default True).
-    support_gap  – air gap in mm between supports and the spring coils above/
-                   below them.  The support height is
-                     pitch - thickness - 2 * support_gap.
-                   Set to 0 to omit supports entirely.
+    closed_ends   – add one extra coil at each end where pitch ramps to zero,
+                    giving flat contact faces (default True).
+    support_gap   – air gap in mm between supports and the spring coils above/
+                    below them.  The support height is
+                      pitch - thickness - 2 * support_gap.
+                    Also controls the height of the base ring at z=0.
+                    Set to 0 to omit all supports.
+    output_format – 'stl', '3mf_bambu', or '3mf_snapmaker'
     """
     radius = inside_dia / 2 + width / 2
 
@@ -304,10 +464,23 @@ def generate_spring_stl(
 
             triangles.extend(sup_tris)
 
-    write_binary_stl(
-        [np.array(t, dtype=np.float32) for t in triangles],
-        output_path,
-    )
+    # ---- Base ring support ----
+    # A thin annular disc at z=0 that gives the bottom closed-end coil a solid
+    # footing on the build plate.  Height equals support_gap so it peels off
+    # cleanly after printing.
+    base_h = min(support_gap, pitch * 0.4) if support_gap > 0 else 0
+    if base_h > 0.05:
+        base_tris = _base_ring_triangles(inside_dia, width, thickness, base_h)
+        triangles.extend([np.array(t, dtype=np.float32) for t in base_tris])
+
+    all_tris = [np.array(t, dtype=np.float32) for t in triangles]
+
+    if output_format in ("3mf_bambu", "3mf_snapmaker"):
+        slicer = "snapmaker" if output_format == "3mf_snapmaker" else "bambu"
+        write_3mf(all_tris, output_path, slicer=slicer)
+    else:
+        write_binary_stl(all_tris, output_path)
+
     return output_path
 
 

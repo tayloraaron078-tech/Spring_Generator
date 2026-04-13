@@ -268,6 +268,34 @@
     position: absolute;
     inset: 0;
   }
+
+  /* ── Format selector ── */
+  .fmt-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .fmt-btn {
+    flex: 1;
+    padding: 7px 6px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    white-space: nowrap;
+  }
+  .fmt-btn:hover { border-color: var(--accent); color: var(--text); }
+  .fmt-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 500;
+  }
 </style>
 </head>
 <body>
@@ -368,6 +396,15 @@
       </div>
       <input type="range" id="support_gap_range" min="0" max="2" step="0.05" value="0.25"
              oninput="sync('support_gap',this.value)">
+    </div>
+
+    <div class="param">
+      <label>Format</label>
+      <div class="fmt-group" id="fmtGroup">
+        <button class="fmt-btn active" data-fmt="stl" onclick="setFmt(this)">STL</button>
+        <button class="fmt-btn" data-fmt="3mf_bambu" onclick="setFmt(this)">3MF — Bambu / Orca</button>
+        <button class="fmt-btn" data-fmt="3mf_snapmaker" onclick="setFmt(this)">3MF — Snapmaker</button>
+      </div>
     </div>
 
     <button class="btn-generate" id="genBtn" onclick="generate()">⬇ Generate &amp; Download</button>
