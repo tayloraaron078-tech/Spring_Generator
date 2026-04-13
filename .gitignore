@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist_info/
+.env
+.venv
+env/
+venv/
+
+# PyInstaller build artefacts (keep dist/, ignore the intermediate build/)
+spring_app/build/
+spring_app/*.pkg
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
