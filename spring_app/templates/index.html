@@ -215,13 +215,13 @@
     overflow: hidden;
   }
 
-  canvas {
+  #springViewport {
     width: 100%;
     height: 100%;
     display: block;
     cursor: grab;
   }
-  canvas:active { cursor: grabbing; }
+  #springViewport:active { cursor: grabbing; }
 
   .preview-label {
     position: absolute;
@@ -264,11 +264,9 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ── Spring SVG preview ── */
-  #springCanvas {
+  #springViewport canvas {
     position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    inset: 0;
   }
 </style>
 </head>
@@ -378,8 +376,8 @@
   <!-- ── Preview + status ── -->
   <div class="preview-area">
     <div class="canvas-wrap">
-      <canvas id="springCanvas"></canvas>
-      <div class="preview-label">2D preview — drag to orbit not available (install Three.js for 3D)</div>
+      <div id="springViewport" aria-label="3D spring preview"></div>
+      <div class="preview-label">3D preview — drag to orbit · scroll to zoom</div>
     </div>
     <div class="status" id="status">
       <div class="spinner" id="spinner"></div>
@@ -388,6 +386,7 @@
   </div>
 </main>
 
+<script src="https://unpkg.com/three@0.164.1/build/three.min.js"></script>
 <script>
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function v(id) { return parseFloat(document.getElementById(id).value) || 0; }
@@ -418,82 +417,135 @@ function sync(id, val) {
   document.getElementById(id).addEventListener('input', drawPreview);
 });
 
-// ── 2-D Spring Preview (SVG-on-canvas style helix projection) ────────────────
-function drawPreview() {
-  const canvas = document.getElementById('springCanvas');
-  const W = canvas.parentElement.clientWidth;
-  const H = canvas.parentElement.clientHeight;
-  canvas.width  = W * devicePixelRatio;
-  canvas.height = H * devicePixelRatio;
-  canvas.style.width  = W + 'px';
-  canvas.style.height = H + 'px';
-  const ctx = canvas.getContext('2d');
-  ctx.scale(devicePixelRatio, devicePixelRatio);
+// ── 3D Spring Preview (Three.js) ─────────────────────────────────────────────
+let renderer;
+let camera;
+let scene;
+let controls;
+let springMesh = null;
+let material;
 
-  const coils     = Math.max(1, v('coils'));
-  const thickness = Math.max(0.2, v('thickness'));
-  const width     = Math.max(0.2, v('width'));
-  const pitch     = Math.max(0.5, v('pitch'));
-  const id        = Math.max(1,   v('inside_dia'));
+function initThree() {
+  const viewport = document.getElementById('springViewport');
+  const previewLabel = document.querySelector('.preview-label');
 
-  const totalH = coils * pitch;
-  const outerR = id / 2 + width;
-  const scale  = Math.min((H * 0.8) / totalH, (W * 0.36) / outerR);
-  const cx = W / 2, cy = H / 2;
-
-  ctx.clearRect(0, 0, W, H);
-
-  // Draw coils as ellipses (orthographic front view)
-  const steps = coils * 40;
-  const points = [];
-  for (let i = 0; i <= steps; i++) {
-    const t    = (i / steps) * coils * Math.PI * 2;
-    const z    = (t / (Math.PI * 2)) * pitch;
-    const r    = id / 2 + width / 2;
-    const px   = cx + r * Math.cos(t) * scale;
-    const py   = cy + (z - totalH / 2) * scale;
-    points.push({ px, py, front: Math.cos(t) >= 0 });
+  if (!window.THREE) {
+    if (previewLabel) {
+      previewLabel.textContent = '3D preview unavailable (Three.js failed to load)';
+    }
+    return;
   }
 
-  // Back strokes first (dashed)
-  ctx.lineWidth = Math.max(1, thickness * scale * 0.9);
-  ctx.lineCap   = 'round';
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
+  viewport.appendChild(renderer.domElement);
 
-  let inSeg = false;
-  ctx.beginPath();
-  for (let i = 0; i < points.length; i++) {
-    if (!points[i].front) {
-      if (!inSeg) { ctx.moveTo(points[i].px, points[i].py); inSeg = true; }
-      else          ctx.lineTo(points[i].px, points[i].py);
-    } else {
-      inSeg = false;
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(45, 1, 0.1, 2000);
+  camera.position.set(45, 35, 45);
+
+  if (THREE.OrbitControls) {
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.target.set(0, 0, 0);
+  } else {
+    controls = {
+      target: { set: () => {} },
+      update: () => {},
+    };
+    if (previewLabel) {
+      previewLabel.textContent = '3D preview active (orbit controls unavailable)';
     }
   }
-  ctx.strokeStyle = '#2a2a2a';
-  ctx.stroke();
 
-  // Front strokes
-  inSeg = false;
-  ctx.beginPath();
-  for (let i = 0; i < points.length; i++) {
-    if (points[i].front) {
-      if (!inSeg) { ctx.moveTo(points[i].px, points[i].py); inSeg = true; }
-      else          ctx.lineTo(points[i].px, points[i].py);
-    } else {
-      inSeg = false;
-    }
-  }
-  ctx.strokeStyle = '#d0d0d0';
-  ctx.stroke();
+  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  keyLight.position.set(35, 40, 25);
+  scene.add(keyLight);
 
-  // Dimension annotation
-  ctx.font      = `${Math.round(10 * devicePixelRatio / devicePixelRatio)}px "DM Mono"`;
-  ctx.fillStyle = '#555';
-  ctx.fillText(`⌀ ${id.toFixed(1)} mm ID`, cx + outerR * scale + 8, cy);
-  ctx.fillText(`${totalH.toFixed(1)} mm`, cx - outerR * scale - 60, cy);
+  material = new THREE.MeshStandardMaterial({
+    color: 0xd6d6d6,
+    metalness: 0.2,
+    roughness: 0.45,
+  });
+
+  const grid = new THREE.GridHelper(120, 24, 0x333333, 0x222222);
+  grid.position.y = -30;
+  scene.add(grid);
+
+  onResize();
+  animate();
 }
 
-window.addEventListener('resize', drawPreview);
+function buildSpringGeometry(coils, thickness, width, pitch, insideDia) {
+  const path = new THREE.Curve();
+  const turns = Math.max(1, coils);
+  const totalAngle = turns * Math.PI * 2;
+  const radius = insideDia / 2 + width / 2;
+  const totalHeight = turns * pitch;
+
+  path.getPoint = function(t) {
+    const a = totalAngle * t;
+    const x = radius * Math.cos(a);
+    const z = radius * Math.sin(a);
+    const y = -totalHeight / 2 + pitch * turns * t;
+    return new THREE.Vector3(x, y, z);
+  };
+
+  const tubeRadius = Math.max(0.1, thickness / 2);
+  return new THREE.TubeGeometry(path, Math.max(80, Math.round(turns * 90)), tubeRadius, 24, false);
+}
+
+function drawPreview() {
+  if (!scene) return;
+  const coils = Math.max(1, v('coils'));
+  const thickness = Math.max(0.2, v('thickness'));
+  const width = Math.max(0.2, v('width'));
+  const pitch = Math.max(0.5, v('pitch'));
+  const insideDia = Math.max(1, v('inside_dia'));
+
+  if (springMesh) {
+    scene.remove(springMesh);
+    springMesh.geometry.dispose();
+  }
+
+  springMesh = new THREE.Mesh(
+    buildSpringGeometry(coils, thickness, width, pitch, insideDia),
+    material
+  );
+  scene.add(springMesh);
+
+  const totalHeight = coils * pitch;
+  const outerRadius = insideDia / 2 + width + thickness;
+  const fit = Math.max(totalHeight, outerRadius * 2);
+  camera.position.set(fit * 1.2, fit * 0.9, fit * 1.2);
+  camera.near = 0.1;
+  camera.far = fit * 20;
+  camera.updateProjectionMatrix();
+  controls.target.set(0, 0, 0);
+  controls.update();
+}
+
+function onResize() {
+  if (!renderer || !camera) return;
+  const viewport = document.getElementById('springViewport');
+  const w = Math.max(1, viewport.clientWidth);
+  const h = Math.max(1, viewport.clientHeight);
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  if (!renderer || !scene || !camera) return;
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', onResize);
+initThree();
 drawPreview();
 
 // ── Generate & Download ───────────────────────────────────────────────────────
