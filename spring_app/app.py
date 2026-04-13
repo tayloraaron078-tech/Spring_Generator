@@ -1,18 +1,36 @@
 """
-app.py  –  Spring Generator local web app
+app.py  -  Spring Generator local web app
 Run:  python3 app.py
 Open: http://localhost:5000
 """
 
 import os
+import sys
 import uuid
+import socket
+import threading
 import tempfile
+import webbrowser
 from flask import Flask, request, send_file, jsonify, render_template
 
 from spring_gen import generate_spring_stl
 
-app = Flask(__name__)
+# When bundled by PyInstaller, data files live in sys._MEIPASS; otherwise
+# they are alongside this script.
+if getattr(sys, "frozen", False):
+    _base = sys._MEIPASS
+else:
+    _base = os.path.dirname(os.path.abspath(__file__))
+
+app = Flask(__name__, template_folder=os.path.join(_base, "templates"))
 TMP = tempfile.gettempdir()
+
+
+def _free_port():
+    """Return an available TCP port on localhost."""
+    with socket.socket() as s:
+        s.bind(("", 0))
+        return s.getsockname()[1]
 
 
 @app.route("/")
@@ -74,5 +92,11 @@ def generate():
 
 
 if __name__ == "__main__":
-    print("Spring Generator running at http://localhost:5000")
-    app.run(debug=False, port=5000)
+    port = _free_port()
+    url  = f"http://localhost:{port}"
+    print(f"Spring Generator running at {url}")
+    print("Press Ctrl+C to stop.")
+    # Auto-open the browser when running as a bundled executable
+    if getattr(sys, "frozen", False):
+        threading.Timer(1.2, lambda: webbrowser.open(url)).start()
+    app.run(debug=False, port=port)
