@@ -70,7 +70,6 @@ def generate():
         width       = float(data.get("width",        2.0))
         pitch       = float(data.get("pitch",        4.0))
         inside_dia  = float(data.get("inside_dia",   6.0))
-        chamfer     = float(data.get("chamfer",      0.5))
         support_gap = float(data.get("support_gap",  0.25))
         fmt         = data.get("format", "stl").lower()
     except (ValueError, TypeError) as e:
@@ -82,7 +81,6 @@ def generate():
     width       = max(0.2, min(width,       20))
     pitch       = max(0.5, min(pitch,       50))
     inside_dia  = max(1,   min(inside_dia,  200))
-    chamfer     = max(0,   min(chamfer,     min(thickness, width) / 2))
     support_gap = max(0,   min(support_gap, 5))
 
     ext = ".3mf" if fmt in ("3mf_bambu", "3mf_snapmaker") else ".stl"
@@ -96,7 +94,6 @@ def generate():
             width=width,
             pitch=pitch,
             inside_dia=inside_dia,
-            chamfer=chamfer,
             n_per_coil=72,
             closed_ends=True,
             support_gap=support_gap,

@@ -203,44 +203,40 @@ def write_binary_stl(triangles, path):
 # Base-ring support (flat annular disc at z=0)
 # ---------------------------------------------------------------------------
 
-def _base_ring_triangles(inside_dia, width, thickness, height, n_segments=64):
+def _base_disc_triangles(inside_dia, width, thickness, height, n_segments=72):
     """
-    Flat annular ring at z=0 .. z=height.
-    Acts as a raft/base support for the bottom closed-end coil.
+    Solid disc at z=0..height spanning the full spring footprint plus margin.
 
-    Inner radius: centreline_radius - width/2  (just inside spring wire centreline)
-    Outer radius: centreline_radius + width/2 + thickness  (just outside)
-    height      : support_gap (thin so it breaks away easily after printing)
+    Using a solid disc (not a hollow ring) ensures the entire bottom area —
+    including the region inside the first coil — is supported as the spring
+    wire ramps up from the flat closed end.
+
+    Outer radius: spring outer edge + 1 mm margin
+    Height      : min(thickness, pitch * 0.3) — tall enough to cradle the
+                  initial rise of the first coil; snaps off cleanly after print.
     """
-    r_centre = inside_dia / 2 + width / 2
-    r_inner  = max(0.5, r_centre - width / 2)
-    r_outer  = r_centre + width / 2 + thickness
+    r_outer = inside_dia / 2 + width + 1.0  # outer spring edge + 1 mm
 
-    angles = np.linspace(0, 2 * math.pi, n_segments, endpoint=False)
-    cos_a  = np.cos(angles)
-    sin_a  = np.sin(angles)
-
-    # Four rings of vertices
-    ib = np.stack([r_inner * cos_a, r_inner * sin_a, np.zeros(n_segments)], axis=1)
-    ob = np.stack([r_outer * cos_a, r_outer * sin_a, np.zeros(n_segments)], axis=1)
-    it = np.stack([r_inner * cos_a, r_inner * sin_a, np.full(n_segments, height)], axis=1)
-    ot = np.stack([r_outer * cos_a, r_outer * sin_a, np.full(n_segments, height)], axis=1)
+    angles  = np.linspace(0, 2 * math.pi, n_segments, endpoint=False)
+    rim_b   = np.stack([r_outer * np.cos(angles),
+                        r_outer * np.sin(angles),
+                        np.zeros(n_segments)], axis=1)
+    rim_t   = np.stack([r_outer * np.cos(angles),
+                        r_outer * np.sin(angles),
+                        np.full(n_segments, height)], axis=1)
+    ctr_b   = np.array([0.0, 0.0, 0.0])
+    ctr_t   = np.array([0.0, 0.0, height])
 
     tris = []
     for i in range(n_segments):
         j = (i + 1) % n_segments
-        # Bottom annular face (normal -Z, reversed winding)
-        tris.append((ob[i], ib[j], ib[i]))
-        tris.append((ob[i], ob[j], ib[j]))
-        # Top annular face (normal +Z)
-        tris.append((it[i], it[j], ot[i]))
-        tris.append((ot[i], it[j], ot[j]))
-        # Outer wall (normal outward)
-        tris.append((ob[i], ot[i], ot[j]))
-        tris.append((ob[i], ot[j], ob[j]))
-        # Inner wall (normal inward)
-        tris.append((ib[i], ib[j], it[j]))
-        tris.append((ib[i], it[j], it[i]))
+        # Bottom face fan (normal -Z, reversed winding)
+        tris.append((ctr_b, rim_b[j], rim_b[i]))
+        # Top face fan (normal +Z)
+        tris.append((ctr_t, rim_t[i], rim_t[j]))
+        # Side wall
+        tris.append((rim_b[i], rim_b[j], rim_t[j]))
+        tris.append((rim_b[i], rim_t[j], rim_t[i]))
 
     return tris
 
@@ -303,12 +299,18 @@ def write_3mf(triangles, output_path, slicer="bambu"):
 
     slicer: 'bambu'     → Bambu Studio + OrcaSlicer compatible
             'snapmaker' → Snapmaker Orca compatible
+
+    The metadata structure follows the conventions used by BambuStudio 1.9.x /
+    OrcaSlicer 2.x so that the slicers load the file silently without version
+    warnings.
     """
     content_types = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">\n'
-        '  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>\n'
-        '  <Default Extension="model" ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>\n'
+        '  <Default Extension="rels"'
+        ' ContentType="application/vnd.openxmlformats-package.relationships+xml"/>\n'
+        '  <Default Extension="model"'
+        ' ContentType="application/vnd.ms-package.3dmanufacturing-3dmodel+xml"/>\n'
         '  <Default Extension="config" ContentType="application/xml"/>\n'
         '</Types>'
     )
@@ -322,21 +324,54 @@ def write_3mf(triangles, output_path, slicer="bambu"):
         '</Relationships>'
     )
 
-    if slicer == "snapmaker":
-        printer_model = "Snapmaker Artisan"
-        printer_variant = "Snapmaker Artisan"
-    else:
-        printer_model = ""
-        printer_variant = ""
+    # BambuStudio version string understood by both Bambu Studio and OrcaSlicer
+    bs_version = "01.09.05.51"
 
-    # Minimal model_settings.config understood by both Bambu Studio and OrcaSlicer
+    # slice_info.config — presence of BambuStudio_version suppresses the
+    # "old version / not from Bambu" warnings in both slicers
+    slice_info = (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        '<config>\n'
+        '  <header>\n'
+        f'    <metadata key="X-BBL-Client-Type" value="slicer"/>\n'
+        f'    <metadata key="X-BBL-Client-Version" value="{bs_version}"/>\n'
+        f'    <metadata key="BambuStudio_version" value="{bs_version}"/>\n'
+        '    <metadata key="nozzle_diameter" value="0.40"/>\n'
+        '    <metadata key="file_type" value="geometry"/>\n'
+        '  </header>\n'
+        '</config>'
+    )
+
+    if slicer == "snapmaker":
+        printer_model_id = "Snapmaker-Artisan-3-in-1"
+        printer_name     = "Snapmaker Artisan"
+    else:
+        printer_model_id = "BL-P001"          # generic Bambu placeholder
+        printer_name     = ""
+
+    project_settings = (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        '<config>\n'
+        '  <plate>\n'
+        '    <metadata key="plater_id" value="1"/>\n'
+        '    <metadata key="plater_name" value=""/>\n'
+        '    <metadata key="is_seq_print" value="0"/>\n'
+        '    <metadata key="print_bed_type" value="auto"/>\n'
+        f'    <metadata key="printer_model_id" value="{printer_model_id}"/>\n'
+        '    <metadata key="nozzle_diameter_n0" value="0.40"/>\n'
+        '    <metadata key="filament_ids" value="[\"\"]"/>\n'
+        '    <metadata key="filament_colors" value="#FFFFFF"/>\n'
+        '  </plate>\n'
+        '</config>'
+    )
+
     model_settings = (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<?xml version="1.0" encoding="utf-8"?>\n'
         '<config>\n'
         '  <object id="1">\n'
         '    <metadata key="name" value="spring"/>\n'
-        + (f'    <metadata key="printer_model" value="{printer_model}"/>\n' if printer_model else '')
-        + (f'    <metadata key="printer_variant" value="{printer_variant}"/>\n' if printer_variant else '')
+        + (f'    <metadata key="printer_model" value="{printer_name}"/>\n'
+           if printer_name else '')
         + '  </object>\n'
         '</config>'
     )
@@ -347,6 +382,9 @@ def write_3mf(triangles, output_path, slicer="bambu"):
         zf.writestr("[Content_Types].xml", content_types)
         zf.writestr("_rels/.rels", root_rels)
         zf.writestr("3D/3dmodel.model", model_xml)
+        zf.writestr("Metadata/Slicer", "BambuStudio")
+        zf.writestr("Metadata/slice_info.config", slice_info)
+        zf.writestr("Metadata/project_settings.config", project_settings)
         zf.writestr("Metadata/model_settings.config", model_settings)
 
     return output_path
@@ -464,13 +502,13 @@ def generate_spring_stl(
 
             triangles.extend(sup_tris)
 
-    # ---- Base ring support ----
-    # A thin annular disc at z=0 that gives the bottom closed-end coil a solid
-    # footing on the build plate.  Height equals support_gap so it peels off
-    # cleanly after printing.
-    base_h = min(support_gap, pitch * 0.4) if support_gap > 0 else 0
+    # ---- Base disc support ----
+    # A solid disc at z=0 spanning the full spring footprint.  Taller than a
+    # thin ring so it cradles the wire as it ramps up from the flat closed end.
+    # Height is capped at thickness to avoid wasting material.
+    base_h = min(thickness, pitch * 0.3) if support_gap > 0 else 0
     if base_h > 0.05:
-        base_tris = _base_ring_triangles(inside_dia, width, thickness, base_h)
+        base_tris = _base_disc_triangles(inside_dia, width, thickness, base_h)
         triangles.extend([np.array(t, dtype=np.float32) for t in base_tris])
 
     all_tris = [np.array(t, dtype=np.float32) for t in triangles]

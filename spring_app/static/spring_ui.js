@@ -34,7 +34,7 @@
     });
   });
 
-  ['coils', 'pitch', 'inside_dia', 'chamfer', 'support_gap'].forEach(function (id) {
+  ['coils', 'pitch', 'inside_dia', 'support_gap'].forEach(function (id) {
     var input = byId(id);
     if (input) input.addEventListener('input', drawPreview);
   });
@@ -106,11 +106,13 @@
       return;
     }
 
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setPixelRatio(window.devicePixelRatio || 1);
+    renderer.setClearColor(0x090d16, 1);
     viewport.appendChild(renderer.domElement);
 
     scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x090d16);
     camera = new THREE.PerspectiveCamera(45, 1, 0.1, 2000);
     camera.position.set(45, 35, 45);
 
@@ -129,9 +131,9 @@
     keyLight.position.set(35, 40, 25);
     scene.add(keyLight);
 
-    material = new THREE.MeshStandardMaterial({ color: 0xd6d6d6, metalness: 0.2, roughness: 0.45 });
+    material = new THREE.MeshStandardMaterial({ color: 0xc8d8e8, metalness: 0.35, roughness: 0.35 });
 
-    var grid = new THREE.GridHelper(120, 24, 0x333333, 0x222222);
+    var grid = new THREE.GridHelper(120, 24, 0x1e3050, 0x141e30);
     grid.position.y = -30;
     scene.add(grid);
 
@@ -245,7 +247,6 @@
       width: v('width'),
       pitch: v('pitch'),
       inside_dia: v('inside_dia'),
-      chamfer: v('chamfer'),
       support_gap: v('support_gap'),
       format: _exportFormat
     };

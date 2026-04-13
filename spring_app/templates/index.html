@@ -3,20 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Spring Generator</title>
+<title>Spring Generator — Redeemed 3D</title>
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap');
 
   :root {
-    --bg:        #0f0f0f;
-    --surface:   #181818;
-    --border:    #2a2a2a;
-    --accent:    #e8ff47;
-    --accent2:   #ff6b35;
-    --text:      #e0e0e0;
-    --muted:     #666;
-    --input-bg:  #111;
+    --bg:        #090d16;
+    --surface:   #0f1828;
+    --border:    #1e3050;
+    --accent:    #d42020;
+    --accent-h:  #b81818;
+    --accent2:   #1ab8e8;
+    --text:      #e8eef5;
+    --muted:     #5a7899;
+    --input-bg:  #0a1020;
     --radius:    6px;
+    --glow-r:    rgba(212, 32, 32, 0.35);
+    --glow-b:    rgba(26, 184, 232, 0.35);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -34,32 +38,51 @@
   /* ── Header ── */
   header {
     width: 100%;
-    padding: 18px 32px;
+    padding: 14px 32px;
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     gap: 14px;
     background: var(--surface);
   }
-  .logo-icon {
-    width: 34px; height: 34px;
-    background: var(--accent);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
+  .logo-wrap {
+    width: 46px;
+    height: 46px;
+    border-radius: 8px;
+    overflow: hidden;
     flex-shrink: 0;
+    border: 1px solid var(--border);
   }
-  .logo-icon svg { width: 18px; height: 18px; }
-  header h1 {
+  .logo-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .header-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .brand-name {
     font-family: 'Syne', sans-serif;
     font-weight: 800;
-    font-size: 1.15rem;
-    letter-spacing: -0.01em;
-    color: #fff;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    line-height: 1;
   }
-  header span {
-    font-size: 0.7rem;
+  .brand-red  { color: var(--accent);  text-shadow: 0 0 14px var(--glow-r); }
+  .brand-blue { color: var(--accent2); text-shadow: 0 0 14px var(--glow-b); }
+  .brand-sub {
+    font-size: 0.62rem;
     color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  header .badge {
     margin-left: auto;
+    font-size: 0.65rem;
+    color: var(--muted);
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
@@ -129,7 +152,7 @@
     -moz-appearance: textfield;
   }
   .param input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
-  .param input[type="number"]:focus { border-color: var(--accent); }
+  .param input[type="number"]:focus { border-color: var(--accent2); }
 
   .stepper {
     display: flex;
@@ -147,7 +170,7 @@
     transition: background 0.12s, color 0.12s;
     font-family: 'DM Mono', monospace;
   }
-  .stepper button:hover { background: var(--accent); color: #000; }
+  .stepper button:hover { background: var(--accent); color: #fff; }
 
   /* ── Slider ── */
   input[type="range"] {
@@ -164,9 +187,37 @@
     -webkit-appearance: none;
     width: 14px; height: 14px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--accent2);
     cursor: pointer;
     border: 2px solid var(--bg);
+  }
+
+  /* ── Format selector ── */
+  .fmt-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .fmt-btn {
+    flex: 1;
+    padding: 7px 6px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    white-space: nowrap;
+  }
+  .fmt-btn:hover { border-color: var(--accent2); color: var(--text); }
+  .fmt-btn.active {
+    background: var(--accent2);
+    border-color: var(--accent2);
+    color: #000;
+    font-weight: 500;
   }
 
   /* ── Generate button ── */
@@ -174,7 +225,7 @@
     width: 100%;
     padding: 14px;
     background: var(--accent);
-    color: #000;
+    color: #fff;
     border: none;
     border-radius: var(--radius);
     font-family: 'Syne', sans-serif;
@@ -182,16 +233,21 @@
     font-size: 0.9rem;
     letter-spacing: 0.04em;
     cursor: pointer;
-    transition: background 0.15s, transform 0.1s;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
     margin-top: 4px;
+    box-shadow: 0 0 0 0 var(--glow-r);
   }
-  .btn-generate:hover { background: #d4eb2f; }
+  .btn-generate:hover {
+    background: var(--accent-h);
+    box-shadow: 0 0 18px var(--glow-r);
+  }
   .btn-generate:active { transform: scale(0.98); }
   .btn-generate:disabled {
     background: var(--border);
     color: var(--muted);
     cursor: not-allowed;
     transform: none;
+    box-shadow: none;
   }
 
   /* ── Preview area ── */
@@ -249,8 +305,8 @@
     align-items: center;
     gap: 8px;
   }
-  .status.error { border-color: var(--accent2); color: var(--accent2); }
-  .status.success { border-color: var(--accent); color: var(--accent); }
+  .status.error   { border-color: var(--accent);  color: var(--accent);  }
+  .status.success { border-color: var(--accent2); color: var(--accent2); }
 
   /* ── Spinner ── */
   .spinner {
@@ -269,45 +325,39 @@
     inset: 0;
   }
 
-  /* ── Format selector ── */
-  .fmt-group {
+  /* ── Footer watermark ── */
+  footer {
+    width: 100%;
+    padding: 10px 32px;
+    border-top: 1px solid var(--border);
     display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-  .fmt-btn {
-    flex: 1;
-    padding: 7px 6px;
-    background: var(--input-bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--surface);
+    font-size: 0.62rem;
     color: var(--muted);
-    font-family: 'DM Mono', monospace;
-    font-size: 0.68rem;
-    letter-spacing: 0.03em;
-    cursor: pointer;
-    transition: background 0.12s, color 0.12s, border-color 0.12s;
-    white-space: nowrap;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
-  .fmt-btn:hover { border-color: var(--accent); color: var(--text); }
-  .fmt-btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #000;
-    font-weight: 500;
-  }
+  footer .dot { color: var(--border); }
+  footer .r { color: var(--accent); }
+  footer .b { color: var(--accent2); }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo-icon">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
-      <path d="M12 2 C6 2 4 6 4 9 C4 12 8 14 12 12 C16 10 20 12 20 15 C20 18 18 22 12 22"/>
-    </svg>
+  <div class="logo-wrap">
+    <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Redeemed 3D logo">
   </div>
-  <h1>Spring Generator</h1>
-  <span>Local · No Cloud · No Credits</span>
+  <div class="header-brand">
+    <div class="brand-name">
+      <span class="brand-red">REDEEMED</span><span class="brand-blue"> 3D</span>
+    </div>
+    <div class="brand-sub">Spring Generator</div>
+  </div>
+  <span class="badge">Local · No Cloud · No Credits</span>
 </header>
 
 <main>
@@ -375,17 +425,6 @@
     </div>
 
     <div class="param">
-      <label>Chamfer (mm)</label>
-      <div class="param-row">
-        <input type="number" id="chamfer" value="0.5" min="0" max="5" step="0.1">
-        <div class="stepper">
-          <button onclick="step('chamfer',-0.1)">−</button>
-          <button onclick="step('chamfer',+0.1)">+</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="param">
       <label>Support Gap (mm) <span style="color:var(--muted);font-size:0.65rem">— 0 = off</span></label>
       <div class="param-row">
         <input type="number" id="support_gap" value="0.25" min="0" max="5" step="0.05">
@@ -418,10 +457,18 @@
     </div>
     <div class="status" id="status">
       <div class="spinner" id="spinner"></div>
-      <span id="statusText">Enter parameters and click Generate to download your STL.</span>
+      <span id="statusText">Enter parameters and click Generate to download your file.</span>
     </div>
   </div>
 </main>
+
+<footer>
+  <span class="r">Redeemed</span><span class="b"> 3D</span>
+  <span class="dot">·</span>
+  <span>Spring Generator</span>
+  <span class="dot">·</span>
+  <span>Local · No Cloud</span>
+</footer>
 
 <script src="{{ url_for('static', filename='spring_ui.js') }}" defer></script>
 
