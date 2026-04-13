@@ -1,7 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python3 -c ':*)"
+      "Bash(python3 -c ':*)",
+      "Bash(git -C /c/Users/prsda/Documents/GitHub/spring_generator/Spring_Generator remote -v)",
+      "Bash(git -C /c/Users/prsda/Documents/GitHub/spring_generator/Spring_Generator diff HEAD)",
+      "Bash(git -C /c/Users/prsda/Documents/GitHub/spring_generator/Spring_Generator log --oneline -3)",
+      "Bash(git -C /c/Users/prsda/Documents/GitHub/spring_generator/Spring_Generator show HEAD:spring_app/spring_gen.py)",
+      "Bash(git -C /c/Users/prsda/Documents/GitHub/spring_generator/Spring_Generator status)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(gh pr create --title 'Add closed ends and auto-generated helical supports' --body ':*)",
+      "Bash(where gh:*)",
+      "Read(//c/Program Files/**)",
+      "Bash(pip show:*)",
+      "Bash(chmod +x /c/Users/prsda/Documents/GitHub/spring_generator/Spring_Generator/spring_app/build.sh)",
+      "Bash(pyinstaller spring_generator.spec --clean)"
     ]
   }
 }

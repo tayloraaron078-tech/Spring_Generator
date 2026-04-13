@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Spring Generator</title>
+
+<!-- Three.js ES-module imports -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.min.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/"
+  }
+}
+</script>
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap');
 
@@ -215,13 +226,28 @@
     overflow: hidden;
   }
 
+<<<<<<< Updated upstream
   #springViewport {
     width: 100%;
     height: 100%;
+=======
+  /* Three.js renderer fills the wrap */
+  #previewWrap {
+    position: absolute;
+    inset: 0;
+  }
+  #previewWrap canvas {
+>>>>>>> Stashed changes
     display: block;
+    width: 100% !important;
+    height: 100% !important;
     cursor: grab;
   }
+<<<<<<< Updated upstream
   #springViewport:active { cursor: grabbing; }
+=======
+  #previewWrap canvas:active { cursor: grabbing; }
+>>>>>>> Stashed changes
 
   .preview-label {
     position: absolute;
@@ -233,6 +259,7 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     pointer-events: none;
+    white-space: nowrap;
   }
 
   /* ── Status bar ── */
@@ -249,8 +276,8 @@
     align-items: center;
     gap: 8px;
   }
-  .status.error { border-color: var(--accent2); color: var(--accent2); }
-  .status.success { border-color: var(--accent); color: var(--accent); }
+  .status.error   { border-color: var(--accent2); color: var(--accent2); }
+  .status.success { border-color: var(--accent);  color: var(--accent);  }
 
   /* ── Spinner ── */
   .spinner {
@@ -263,11 +290,14 @@
     flex-shrink: 0;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+<<<<<<< Updated upstream
 
   #springViewport canvas {
     position: absolute;
     inset: 0;
   }
+=======
+>>>>>>> Stashed changes
 </style>
 </head>
 <body>
@@ -292,7 +322,7 @@
       <div class="param-row">
         <input type="number" id="coils" value="15" min="1" max="50" step="1">
         <div class="stepper">
-          <button onclick="step('coils',-1)">−</button>
+          <button onclick="step('coils',-1)">&#8722;</button>
           <button onclick="step('coils',+1)">+</button>
         </div>
       </div>
@@ -303,7 +333,7 @@
       <div class="param-row">
         <input type="number" id="thickness" value="1.7" min="0.2" max="20" step="0.1">
         <div class="stepper">
-          <button onclick="step('thickness',-0.1)">−</button>
+          <button onclick="step('thickness',-0.1)">&#8722;</button>
           <button onclick="step('thickness',+0.1)">+</button>
         </div>
       </div>
@@ -316,7 +346,7 @@
       <div class="param-row">
         <input type="number" id="width" value="2" min="0.2" max="20" step="0.1">
         <div class="stepper">
-          <button onclick="step('width',-0.1)">−</button>
+          <button onclick="step('width',-0.1)">&#8722;</button>
           <button onclick="step('width',+0.1)">+</button>
         </div>
       </div>
@@ -329,7 +359,7 @@
       <div class="param-row">
         <input type="number" id="pitch" value="4" min="0.5" max="50" step="0.5">
         <div class="stepper">
-          <button onclick="step('pitch',-0.5)">−</button>
+          <button onclick="step('pitch',-0.5)">&#8722;</button>
           <button onclick="step('pitch',+0.5)">+</button>
         </div>
       </div>
@@ -340,7 +370,7 @@
       <div class="param-row">
         <input type="number" id="inside_dia" value="6" min="1" max="200" step="0.5">
         <div class="stepper">
-          <button onclick="step('inside_dia',-0.5)">−</button>
+          <button onclick="step('inside_dia',-0.5)">&#8722;</button>
           <button onclick="step('inside_dia',+0.5)">+</button>
         </div>
       </div>
@@ -351,18 +381,18 @@
       <div class="param-row">
         <input type="number" id="chamfer" value="0.5" min="0" max="5" step="0.1">
         <div class="stepper">
-          <button onclick="step('chamfer',-0.1)">−</button>
+          <button onclick="step('chamfer',-0.1)">&#8722;</button>
           <button onclick="step('chamfer',+0.1)">+</button>
         </div>
       </div>
     </div>
 
     <div class="param">
-      <label>Support Gap (mm) <span style="color:var(--muted);font-size:0.65rem">— 0 = off</span></label>
+      <label>Support Gap (mm) <span style="color:var(--muted);font-size:0.65rem">&#8212; 0 = off</span></label>
       <div class="param-row">
         <input type="number" id="support_gap" value="0.25" min="0" max="5" step="0.05">
         <div class="stepper">
-          <button onclick="step('support_gap',-0.05)">−</button>
+          <button onclick="step('support_gap',-0.05)">&#8722;</button>
           <button onclick="step('support_gap',+0.05)">+</button>
         </div>
       </div>
@@ -370,14 +400,19 @@
              oninput="sync('support_gap',this.value)">
     </div>
 
-    <button class="btn-generate" id="genBtn" onclick="generate()">⬇ Generate &amp; Download</button>
+    <button class="btn-generate" id="genBtn" onclick="generate()">&#8595; Generate &amp; Download</button>
   </div>
 
-  <!-- ── Preview + status ── -->
+  <!-- ── 3-D Preview + status ── -->
   <div class="preview-area">
     <div class="canvas-wrap">
+<<<<<<< Updated upstream
       <div id="springViewport" aria-label="3D spring preview"></div>
       <div class="preview-label">3D preview — drag to orbit · scroll to zoom</div>
+=======
+      <div id="previewWrap"></div>
+      <div class="preview-label">3D preview &#8212; drag to orbit &middot; scroll to zoom</div>
+>>>>>>> Stashed changes
     </div>
     <div class="status" id="status">
       <div class="spinner" id="spinner"></div>
@@ -386,37 +421,49 @@
   </div>
 </main>
 
+<<<<<<< Updated upstream
 <script src="https://unpkg.com/three@0.164.1/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.164.1/examples/js/controls/OrbitControls.js"></script>
 <script>
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function v(id) { return parseFloat(document.getElementById(id).value) || 0; }
+=======
+<script type="module">
+import * as THREE            from 'three';
+import { OrbitControls }     from 'three/addons/controls/OrbitControls.js';
+>>>>>>> Stashed changes
 
-function step(id, delta) {
-  const el = document.getElementById(id);
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const v = id => parseFloat(document.getElementById(id).value) || 0;
+
+// HTML onclick= handlers need to be on window (modules don't pollute global scope)
+window.step = (id, delta) => {
+  const el  = document.getElementById(id);
   const val = Math.round((parseFloat(el.value) + delta) * 1000) / 1000;
-  el.value = val;
+  el.value  = val;
   const rng = document.getElementById(id + '_range');
   if (rng) rng.value = val;
-  drawPreview();
-}
+  updatePreview();
+};
 
-function sync(id, val) {
-  document.getElementById(id).value = parseFloat(val).toFixed(1);
-  drawPreview();
-}
+window.sync = (id, raw) => {
+  document.getElementById(id).value = raw;
+  updatePreview();
+};
 
-// Update ranges on text input change
-['thickness','width'].forEach(id => {
+// Input listeners
+['thickness', 'width'].forEach(id => {
   document.getElementById(id).addEventListener('input', () => {
-    const rng = document.getElementById(id+'_range');
+    const rng = document.getElementById(id + '_range');
     if (rng) rng.value = document.getElementById(id).value;
-    drawPreview();
+    updatePreview();
   });
 });
-['coils','pitch','inside_dia','chamfer','support_gap'].forEach(id => {
-  document.getElementById(id).addEventListener('input', drawPreview);
-});
+['coils', 'pitch', 'inside_dia', 'chamfer', 'support_gap'].forEach(id =>
+  document.getElementById(id).addEventListener('input', updatePreview)
+);
 
+<<<<<<< Updated upstream
 // ── 3D Spring Preview (Three.js) ─────────────────────────────────────────────
 let renderer;
 let camera;
@@ -427,14 +474,6 @@ let material;
 
 function initThree() {
   const viewport = document.getElementById('springViewport');
-  const previewLabel = document.querySelector('.preview-label');
-
-  if (!window.THREE) {
-    if (previewLabel) {
-      previewLabel.textContent = '3D preview unavailable (Three.js failed to load)';
-    }
-    return;
-  }
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(window.devicePixelRatio || 1);
@@ -444,20 +483,10 @@ function initThree() {
   camera = new THREE.PerspectiveCamera(45, 1, 0.1, 2000);
   camera.position.set(45, 35, 45);
 
-  if (THREE.OrbitControls) {
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-    controls.target.set(0, 0, 0);
-  } else {
-    controls = {
-      target: { set: () => {} },
-      update: () => {},
-    };
-    if (previewLabel) {
-      previewLabel.textContent = '3D preview active (orbit controls unavailable)';
-    }
-  }
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.target.set(0, 0, 0);
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.65));
   const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
@@ -547,18 +576,194 @@ function animate() {
 window.addEventListener('resize', onResize);
 initThree();
 drawPreview();
+=======
+// ── Three.js scene ────────────────────────────────────────────────────────────
+let renderer, scene, camera, controls;
+let springMesh = null, supportMesh = null;
+let autoFitDone = false;
+
+function initScene() {
+  const wrap = document.getElementById('previewWrap');
+  const W = wrap.clientWidth || 640;
+  const H = wrap.clientHeight || 480;
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(devicePixelRatio);
+  renderer.setSize(W, H);
+  renderer.setClearColor(0x181818);
+  wrap.appendChild(renderer.domElement);
+
+  scene  = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 10000);
+
+  // Lights
+  scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+  sun.position.set(60, 100, 60);
+  scene.add(sun);
+  const fill = new THREE.DirectionalLight(0x7799ff, 0.35);
+  fill.position.set(-60, 20, -40);
+  scene.add(fill);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping  = true;
+  controls.dampingFactor  = 0.07;
+  controls.minDistance    = 1;
+  controls.maxDistance    = 5000;
+
+  window.addEventListener('resize', () => {
+    const W = wrap.clientWidth, H = wrap.clientHeight;
+    camera.aspect = W / H;
+    camera.updateProjectionMatrix();
+    renderer.setSize(W, H);
+  });
+
+  (function loop() {
+    requestAnimationFrame(loop);
+    controls.update();
+    renderer.render(scene, camera);
+  })();
+}
+
+// ── Helix geometry (mirrors spring_gen.py logic) ─────────────────────────────
+
+/**
+ * Build path points for the spring wire (with closed ends).
+ * Spring axis → Three.js Y (up).  Helix plane → Three.js XZ.
+ */
+function springPath(coils, pitch, radius, ptsPerCoil = 60) {
+  const h0      = pitch / (2 * Math.PI);
+  const total   = coils + 2;               // +1 end coil each side
+  const N       = Math.round(total * ptsPerCoil);
+  const mStart  = 2 * Math.PI;
+  const mEnd    = 2 * Math.PI * (1 + coils);
+
+  const pts = [];
+  let z = 0, prevT = 0;
+
+  for (let i = 0; i < N; i++) {
+    const t = (i / (N - 1)) * total * 2 * Math.PI;
+    let h;
+    if      (t <= mStart) { h = h0 * (1 - Math.cos(t / 2)) / 2; }
+    else if (t <= mEnd)   { h = h0; }
+    else                  { const phi = t - mEnd; h = h0 * (1 + Math.cos(phi / 2)) / 2; }
+
+    if (i > 0) z += h * (t - prevT);
+    prevT = t;
+    pts.push(new THREE.Vector3(radius * Math.cos(t), z, radius * Math.sin(t)));
+  }
+
+  // Shift so bottom is at y = 0
+  let minY = pts[0].y;
+  for (const p of pts) if (p.y < minY) minY = p.y;
+  for (const p of pts) p.y -= minY;
+
+  return pts;
+}
+
+/**
+ * Build path points for the helical support body.
+ * Runs (coils-1) turns, centred midway between each pair of spring passes.
+ */
+function supportPath(coils, pitch, radius, springPts, ptsPerCoil = 60) {
+  if (coils < 2) return [];
+  const h0    = pitch / (2 * Math.PI);
+  const turns = coils - 1;
+  const N     = Math.round(turns * ptsPerCoil);
+
+  // z of spring centreline at start of main section ≈ springPts[ptsPerCoil].y
+  const idx       = Math.min(ptsPerCoil, springPts.length - 1);
+  const zMainStart = springPts[idx].y;
+
+  const pts = [];
+  for (let i = 0; i < N; i++) {
+    const t = (i / (N - 1)) * turns * 2 * Math.PI;
+    const y = zMainStart + pitch / 2 + h0 * t;
+    pts.push(new THREE.Vector3(radius * Math.cos(t), y, radius * Math.sin(t)));
+  }
+  return pts;
+}
+
+/** Dispose mesh safely and remove from scene. */
+function drop(mesh) {
+  if (!mesh) return;
+  scene.remove(mesh);
+  mesh.geometry.dispose();
+  mesh.material.dispose();
+}
+
+/** Create a TubeGeometry mesh from path points. */
+function tubeMesh(pts, tubeR, radSeg, hexColor, opacity = 1) {
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const segs  = Math.min(pts.length - 1, 1500);
+  const geo   = new THREE.TubeGeometry(curve, segs, tubeR, radSeg, false);
+  const mat   = new THREE.MeshStandardMaterial({
+    color:       hexColor,
+    roughness:   0.30,
+    metalness:   0.08,
+    transparent: opacity < 1,
+    opacity,
+  });
+  return new THREE.Mesh(geo, mat);
+}
+
+// ── Preview update ────────────────────────────────────────────────────────────
+function updatePreview() {
+  const coils  = Math.max(1,   v('coils'));
+  const thick  = Math.max(0.2, v('thickness'));
+  const width  = Math.max(0.2, v('width'));
+  const pitch  = Math.max(0.5, v('pitch'));
+  const id     = Math.max(1,   v('inside_dia'));
+  const sgap   = Math.max(0,   v('support_gap'));
+
+  const radius = id / 2 + width / 2;
+  const tubeR  = (thick + width) / 4;    // circular approximation for preview
+
+  drop(springMesh);
+  drop(supportMesh);
+  springMesh = supportMesh = null;
+
+  // Spring wire
+  const sPts  = springPath(coils, pitch, radius);
+  springMesh  = tubeMesh(sPts, tubeR, 8, 0xe8ff47);
+  scene.add(springMesh);
+
+  // Support body
+  const supH = pitch - thick - 2 * sgap;
+  if (sgap > 0 && coils > 1 && supH > 0) {
+    const suPts = supportPath(coils, pitch, radius, sPts);
+    if (suPts.length > 3) {
+      const supR  = Math.min(width, supH) / 2 * 0.7;
+      supportMesh = tubeMesh(suPts, supR, 6, 0xff6b35, 0.80);
+      scene.add(supportMesh);
+    }
+  }
+
+  // Auto-fit camera the first time, then leave orbit position alone
+  if (!autoFitDone) {
+    autoFitDone = true;
+    const box    = new THREE.Box3().setFromObject(springMesh);
+    const center = box.getCenter(new THREE.Vector3());
+    const size   = box.getSize(new THREE.Vector3());
+    const dist   = Math.max(size.x, size.y, size.z) * 2.4;
+    camera.position.set(center.x + dist * 0.65, center.y + dist * 0.35, center.z + dist);
+    controls.target.copy(center);
+    controls.update();
+  }
+}
+>>>>>>> Stashed changes
 
 // ── Generate & Download ───────────────────────────────────────────────────────
-async function generate() {
-  const btn = document.getElementById('genBtn');
-  const spinner = document.getElementById('spinner');
-  const statusEl = document.getElementById('status');
+window.generate = async () => {
+  const btn        = document.getElementById('genBtn');
+  const spinner    = document.getElementById('spinner');
+  const statusEl   = document.getElementById('status');
   const statusText = document.getElementById('statusText');
 
-  btn.disabled = true;
-  spinner.style.display = 'block';
-  statusEl.className = 'status';
-  statusText.textContent = 'Generating spring geometry…';
+  btn.disabled            = true;
+  spinner.style.display   = 'block';
+  statusEl.className      = 'status';
+  statusText.textContent  = 'Generating spring geometry\u2026';
 
   const params = {
     coils:       v('coils'),
@@ -573,34 +778,35 @@ async function generate() {
 
   try {
     const res = await fetch('/generate', {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
+      body:    JSON.stringify(params),
     });
-
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error || `HTTP ${res.status}`);
     }
-
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
+    const blob  = await res.blob();
+    const url   = URL.createObjectURL(blob);
+    const a     = document.createElement('a');
     const fname = `spring_c${params.coils}_id${params.inside_dia}_p${params.pitch}.stl`;
     a.href = url; a.download = fname; a.click();
     URL.revokeObjectURL(url);
 
-    const kb = (blob.size / 1024).toFixed(1);
-    statusEl.className = 'status success';
-    statusText.textContent = `✓ Downloaded ${fname} (${kb} KB)`;
+    statusEl.className     = 'status success';
+    statusText.textContent = `\u2713 Downloaded ${fname} (${(blob.size/1024).toFixed(1)} KB)`;
   } catch (e) {
-    statusEl.className = 'status error';
-    statusText.textContent = `✗ Error: ${e.message}`;
+    statusEl.className     = 'status error';
+    statusText.textContent = `\u2717 ${e.message}`;
   } finally {
-    btn.disabled = false;
+    btn.disabled          = false;
     spinner.style.display = 'none';
   }
-}
+};
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+initScene();
+updatePreview();
 </script>
 </body>
 </html>
