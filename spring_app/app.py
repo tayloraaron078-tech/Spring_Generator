@@ -11,6 +11,7 @@ import socket
 import threading
 import tempfile
 import webbrowser
+import urllib.request
 from flask import Flask, request, send_file, jsonify, render_template
 
 from spring_gen import generate_spring_stl
@@ -22,8 +23,29 @@ if getattr(sys, "frozen", False):
 else:
     _base = os.path.dirname(os.path.abspath(__file__))
 
-app = Flask(__name__, template_folder=os.path.join(_base, "templates"))
+app = Flask(__name__,
+            template_folder=os.path.join(_base, "templates"),
+            static_folder=os.path.join(_base, "static"))
 TMP = tempfile.gettempdir()
+
+_VENDOR_FILES = {
+    "three.min.js":      "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
+    "OrbitControls.js":  "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js",
+}
+
+def ensure_vendor_files():
+    """Download Three.js vendor files on first run so the 3D preview works offline."""
+    vendor_dir = os.path.join(_base, "static", "vendor")
+    os.makedirs(vendor_dir, exist_ok=True)
+    for fname, url in _VENDOR_FILES.items():
+        dest = os.path.join(vendor_dir, fname)
+        if not os.path.exists(dest):
+            try:
+                print(f"Downloading {fname} …", end=" ", flush=True)
+                urllib.request.urlretrieve(url, dest)
+                print("done")
+            except Exception as exc:
+                print(f"failed ({exc}). Browser will fall back to CDN.")
 
 
 def _free_port():
@@ -63,7 +85,8 @@ def generate():
     chamfer     = max(0,   min(chamfer,     min(thickness, width) / 2))
     support_gap = max(0,   min(support_gap, 5))
 
-    fname = f"spring_{uuid.uuid4().hex[:8]}.stl"
+    ext = ".3mf" if fmt in ("3mf_bambu", "3mf_snapmaker") else ".stl"
+    fname = f"spring_{uuid.uuid4().hex[:8]}{ext}"
     out_path = os.path.join(TMP, fname)
 
     try:
@@ -78,20 +101,23 @@ def generate():
             closed_ends=True,
             support_gap=support_gap,
             output_path=out_path,
+            output_format=fmt,
         )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    dl_name = f"spring_c{coils}_id{inside_dia}_p{pitch}.stl"
+    dl_name = f"spring_c{coils}_id{inside_dia}_p{pitch}{ext}"
+    mime = "model/3mf" if ext == ".3mf" else "application/octet-stream"
     return send_file(
         out_path,
         as_attachment=True,
         download_name=dl_name,
-        mimetype="application/octet-stream",
+        mimetype=mime,
     )
 
 
 if __name__ == "__main__":
+    ensure_vendor_files()
     port = _free_port()
     url  = f"http://localhost:{port}"
     print(f"Spring Generator running at {url}")

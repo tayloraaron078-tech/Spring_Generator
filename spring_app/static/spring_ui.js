@@ -54,9 +54,9 @@
     if (window.THREE) return true;
     var sources = [
       '/static/vendor/three.min.js',
-      'https://unpkg.com/three@0.164.1/build/three.min.js',
-      'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.min.js',
-      'https://cdnjs.cloudflare.com/ajax/libs/three.js/r164/three.min.js'
+      'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
+      'https://unpkg.com/three@0.128.0/build/three.min.js',
+      'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'
     ];
 
     for (var i = 0; i < sources.length; i++) {
@@ -75,8 +75,8 @@
 
     var sources = [
       '/static/vendor/OrbitControls.js',
-      'https://unpkg.com/three@0.164.1/examples/js/controls/OrbitControls.js',
-      'https://cdn.jsdelivr.net/npm/three@0.164.1/examples/js/controls/OrbitControls.js'
+      'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js',
+      'https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js'
     ];
 
     for (var i = 0; i < sources.length; i++) {
@@ -216,6 +216,18 @@
 
   window.addEventListener('resize', onResize);
 
+  var _exportFormat = 'stl';
+
+  window.setFmt = function setFmt(btn) {
+    _exportFormat = btn.dataset.fmt;
+    var group = document.getElementById('fmtGroup');
+    if (group) {
+      group.querySelectorAll('.fmt-btn').forEach(function (b) {
+        b.classList.toggle('active', b === btn);
+      });
+    }
+  };
+
   window.generate = async function generate() {
     var btn = byId('genBtn');
     var spinner = byId('spinner');
@@ -235,7 +247,7 @@
       inside_dia: v('inside_dia'),
       chamfer: v('chamfer'),
       support_gap: v('support_gap'),
-      format: 'stl'
+      format: _exportFormat
     };
 
     try {
@@ -253,7 +265,8 @@
       var blob = await res.blob();
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
-      var fname = 'spring_c' + params.coils + '_id' + params.inside_dia + '_p' + params.pitch + '.stl';
+      var ext = (params.format === '3mf_bambu' || params.format === '3mf_snapmaker') ? '.3mf' : '.stl';
+      var fname = 'spring_c' + params.coils + '_id' + params.inside_dia + '_p' + params.pitch + ext;
       a.href = url;
       a.download = fname;
       a.click();
