@@ -23,3 +23,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Private Developer HQ bridge (machine-local, never committed)
+/CLAUDE.local.md
